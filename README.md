@@ -1,3 +1,5 @@
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/E1E5WTMM4)
+
 # USB Descryptor
 
 This project aims to help developers compose USB descriptors for their USB devices. It is a web application that allows users to create USB descriptors by filling out forms and then generates the corresponding C code.
