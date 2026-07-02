@@ -449,6 +449,9 @@ class StringDescriptor extends Descriptor {
 class InterfaceDescriptor extends Descriptor {
     readonly name = 'Interface Descriptor';
     readonly elements: Element[] = [
+        new AutoElement('bLength', 'Length of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
         new ConstantElement('bDescriptorType', 'INTERFACE descriptor type', 1, 4),
         new VariableElement('bInterfaceNumber', 'Number of interface', 1, 'dec'),
         new VariableElement('bAlternateSetting', 'Value to select alternate setting', 1, 'dec'),

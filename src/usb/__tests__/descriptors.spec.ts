@@ -49,6 +49,16 @@ describe('CDC functional descriptors', () => {
     })
 })
 
+describe('Interface Descriptor', () => {
+    it('starts with an auto-computed bLength and is 9 bytes', () => {
+        const iface = new InterfaceDescriptor()
+        iface.updateAutoElements()
+        expect(iface.elements[0].name).toBe('bLength')
+        expect(iface.length()).toBe(9)
+        expect(iface.elements[0].value).toBe(9)
+    })
+})
+
 describe('Interface Descriptor subclass', () => {
     it('exposes bInterfaceSubClass as an enum including the CDC communication models', () => {
         const sub = field(new InterfaceDescriptor().elements, 'bInterfaceSubClass')
