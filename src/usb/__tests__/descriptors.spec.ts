@@ -5,7 +5,7 @@ import {
     EndpointDescriptor,
     rootDescriptorTypes
 } from '../descriptors'
-import { EnumElement, type Element } from '../elements'
+import { EnumElement, BitmapElement, type Element } from '../elements'
 
 function field(elements: Element[], name: string): Element | undefined {
     return elements.find((e) => e.name === name)
@@ -148,6 +148,59 @@ describe('USB Audio Class 2.0 descriptors', () => {
     it('the interface subclass enum includes the audio subclasses', () => {
         const sub = field(new InterfaceDescriptor().elements, 'bInterfaceSubClass') as EnumElement
         expect(Object.keys(sub.enumValues).some((k) => k.startsWith('Audio:'))).toBe(true)
+    })
+})
+
+describe('UAC2 rich field types', () => {
+    it('models the Input Terminal terminal type as an enum', () => {
+        const t = field(createDescriptorByType('Audio Input Terminal').elements, 'wTerminalType')
+        expect(t).toBeInstanceOf(EnumElement)
+        expect((t as EnumElement).enumValues['Microphone']).toBe(0x0201)
+    })
+
+    it('models spatial channel config as a bitmap', () => {
+        const c = field(createDescriptorByType('Audio Input Terminal').elements, 'bmChannelConfig')
+        expect(c).toBeInstanceOf(BitmapElement)
+        expect((c as BitmapElement).bitmapValues['Front Left (FL)']).toBe(0x01)
+    })
+
+    it('models terminal controls as a bitmap', () => {
+        expect(field(createDescriptorByType('Audio Input Terminal').elements, 'bmControls'))
+            .toBeInstanceOf(BitmapElement)
+    })
+
+    it('models the Clock Source attributes as a bitmap', () => {
+        const a = field(createDescriptorByType('Audio Clock Source').elements, 'bmAttributes')
+        expect(a).toBeInstanceOf(BitmapElement)
+        expect((a as BitmapElement).bitmapValues['Synchronized to SOF']).toBe(0x04)
+    })
+
+    it('models Clock Source controls as a bitmap', () => {
+        expect(field(createDescriptorByType('Audio Clock Source').elements, 'bmControls'))
+            .toBeInstanceOf(BitmapElement)
+    })
+
+    it('models Feature Unit controls as bitmaps with 2-bit masks', () => {
+        const c = field(createDescriptorByType('Audio Feature Unit').elements, 'bmaControls0')
+        expect(c).toBeInstanceOf(BitmapElement)
+        expect((c as BitmapElement).bitmapValues['Mute']).toBe(0x03)
+        expect((c as BitmapElement).bitmapValues['Volume']).toBe(0x0c)
+    })
+
+    it('models AS General format type as an enum and formats as a bitmap', () => {
+        const d = createDescriptorByType('Audio Streaming General')
+        expect(field(d.elements, 'bFormatType')).toBeInstanceOf(EnumElement)
+        const f = field(d.elements, 'bmFormats')
+        expect(f).toBeInstanceOf(BitmapElement)
+        expect((f as BitmapElement).bitmapValues['PCM']).toBe(0x01)
+    })
+
+    it('models the audio data endpoint attributes and controls as bitmaps', () => {
+        const d = createDescriptorByType('Audio Data Endpoint')
+        const a = field(d.elements, 'bmAttributes')
+        expect(a).toBeInstanceOf(BitmapElement)
+        expect((a as BitmapElement).bitmapValues['Max Packets Only']).toBe(0x80)
+        expect(field(d.elements, 'bmControls')).toBeInstanceOf(BitmapElement)
     })
 })
 

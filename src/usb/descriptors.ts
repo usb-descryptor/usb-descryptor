@@ -698,7 +698,38 @@ class CDCEthernetNetworkingFunctionalDescriptor extends Descriptor {
         new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
         new ConstantElement('bDescriptorSubtype', 'Ethernet networking functional descriptor subtype', 1, 0x0f),
         new StringLinkElement('iMACAddress', 'String descriptor holding the 48-bit MAC address', 1),
-        new VariableElement('bmEthernetStatistics', 'Ethernet statistics capabilities', 4, 'hex'),
+        // Ethernet statistics the device collects (CDC ECM 1.2 §5.4, Table 4).
+        new BitmapElement('bmEthernetStatistics', 'Ethernet statistics capabilities', 4, {
+            'XMIT_OK': 0x00000001,
+            'RCV_OK': 0x00000002,
+            'XMIT_ERROR': 0x00000004,
+            'RCV_ERROR': 0x00000008,
+            'RCV_NO_BUFFER': 0x00000010,
+            'DIRECTED_BYTES_XMIT': 0x00000020,
+            'DIRECTED_FRAMES_XMIT': 0x00000040,
+            'MULTICAST_BYTES_XMIT': 0x00000080,
+            'MULTICAST_FRAMES_XMIT': 0x00000100,
+            'BROADCAST_BYTES_XMIT': 0x00000200,
+            'BROADCAST_FRAMES_XMIT': 0x00000400,
+            'DIRECTED_BYTES_RCV': 0x00000800,
+            'DIRECTED_FRAMES_RCV': 0x00001000,
+            'MULTICAST_BYTES_RCV': 0x00002000,
+            'MULTICAST_FRAMES_RCV': 0x00004000,
+            'BROADCAST_BYTES_RCV': 0x00008000,
+            'BROADCAST_FRAMES_RCV': 0x00010000,
+            'RCV_CRC_ERROR': 0x00020000,
+            'TRANSMIT_QUEUE_LENGTH': 0x00040000,
+            'RCV_ERROR_ALIGNMENT': 0x00080000,
+            'XMIT_ONE_COLLISION': 0x00100000,
+            'XMIT_MORE_COLLISIONS': 0x00200000,
+            'XMIT_DEFERRED': 0x00400000,
+            'XMIT_MAX_COLLISIONS': 0x00800000,
+            'RCV_OVERRUN': 0x01000000,
+            'XMIT_UNDERRUN': 0x02000000,
+            'XMIT_HEARTBEAT_FAILURE': 0x04000000,
+            'XMIT_TIMES_CRS_LOST': 0x08000000,
+            'XMIT_LATE_COLLISIONS': 0x10000000,
+        }),
         new VariableElement('wMaxSegmentSize', 'Maximum Ethernet frame size', 2, 'dec'),
         new VariableElement('wNumberMCFilters', 'Number of multicast filters', 2, 'hex'),
         new VariableElement('bNumberPowerFilters', 'Number of wake-up pattern filters', 1, 'dec'),
@@ -735,8 +766,90 @@ class CDCNCMFunctionalDescriptor extends Descriptor {
 
 // USB Audio Class 2.0 class-specific descriptors. AC/AS interface descriptors
 // use bDescriptorType 0x24 (CS_INTERFACE); the audio data endpoint uses 0x25.
-// bmControls/bmAttributes are 2-bit-per-control fields whose bit meanings vary
-// per descriptor, so they are modelled as plain hex values.
+//
+// UAC2 bmControls are 2-bit-per-control fields (00 not present, 01 read-only,
+// 11 host read/write). We model them as BitmapElements whose masks cover both
+// bits of a control, so ticking a control sets it to host read/write (0b11) —
+// much friendlier than raw hex, at the cost of not expressing the read-only
+// (01) state. Spec: USB Audio 2.0 §4.
+
+// Terminal types (USB Audio Terminal Types 2.0). Shared by Input/Output Terminal.
+const audioTerminalTypeEnumValues: EnumValues = {
+    'USB Undefined': 0x0100,
+    'USB Streaming': 0x0101,
+    'USB Vendor Specific': 0x01ff,
+    'Input Undefined': 0x0200,
+    'Microphone': 0x0201,
+    'Desktop Microphone': 0x0202,
+    'Personal Microphone': 0x0203,
+    'Omni-directional Microphone': 0x0204,
+    'Microphone Array': 0x0205,
+    'Processing Microphone Array': 0x0206,
+    'Output Undefined': 0x0300,
+    'Speaker': 0x0301,
+    'Headphones': 0x0302,
+    'Head Mounted Display Audio': 0x0303,
+    'Desktop Speaker': 0x0304,
+    'Room Speaker': 0x0305,
+    'Communication Speaker': 0x0306,
+    'Low Frequency Effects Speaker': 0x0307,
+    'Analog Connector': 0x0601,
+    'Digital Audio Interface': 0x0602,
+    'Line Connector': 0x0603,
+};
+
+// Format Type codes (USB Audio 2.0 Formats §2). Used by AS General bFormatType.
+const audioFormatTypeEnumValues: EnumValues = {
+    'Type I': 0x01,
+    'Type II': 0x02,
+    'Type III': 0x03,
+    'Type IV': 0x04,
+};
+
+// Spatial locations bitmap (USB Audio 2.0 §4.1). Shared by bmChannelConfig fields.
+const audioChannelConfigBitmapValues: Record<string, number> = {
+    'Front Left (FL)': 0x00000001,
+    'Front Right (FR)': 0x00000002,
+    'Front Center (FC)': 0x00000004,
+    'Low Frequency Effects (LFE)': 0x00000008,
+    'Back Left (BL)': 0x00000010,
+    'Back Right (BR)': 0x00000020,
+    'Front Left of Center (FLC)': 0x00000040,
+    'Front Right of Center (FRC)': 0x00000080,
+    'Back Center (BC)': 0x00000100,
+    'Side Left (SL)': 0x00000200,
+    'Side Right (SR)': 0x00000400,
+    'Top Center (TC)': 0x00000800,
+};
+
+// Supported Type I data formats bitmap (USB Audio 2.0 Formats §2.3.1.6).
+const audioFormatsBitmapValues: Record<string, number> = {
+    'PCM': 0x00000001,
+    'PCM8': 0x00000002,
+    'IEEE Float': 0x00000004,
+    'A-Law': 0x00000008,
+    'µ-Law': 0x00000010,
+};
+
+// Feature Unit per-channel controls (USB Audio 2.0 §4.7.2.8), 2 bits each.
+const audioFeatureUnitControlBitmapValues: Record<string, number> = {
+    'Mute': 0x00000003,
+    'Volume': 0x0000000c,
+    'Bass': 0x00000030,
+    'Mid': 0x000000c0,
+    'Treble': 0x00000300,
+    'Graphic Equalizer': 0x00000c00,
+    'Automatic Gain': 0x00003000,
+    'Delay': 0x0000c000,
+    'Bass Boost': 0x00030000,
+    'Loudness': 0x000c0000,
+    'Input Gain': 0x00300000,
+    'Input Gain Pad': 0x00c00000,
+    'Phase Inverter': 0x03000000,
+    'Underflow': 0x0c000000,
+    'Overflow': 0x30000000,
+};
+
 class AudioControlHeaderDescriptor extends Descriptor {
     readonly name = 'Audio Control Header';
     readonly elements: Element[] = [
@@ -748,7 +861,9 @@ class AudioControlHeaderDescriptor extends Descriptor {
         new VariableElement('bcdADC', 'Audio Device Class specification release number', 2, 'hex'),
         new VariableElement('bCategory', 'Audio function category', 1, 'hex'),
         new VariableElement('wTotalLength', 'Total length of the class-specific AC descriptors', 2, 'hex'),
-        new VariableElement('bmControls', 'Audio function controls', 1, 'hex'),
+        new BitmapElement('bmControls', 'Audio function controls', 1, {
+            'Latency Control': 0x03,
+        }),
     ];
 
     isValid(): boolean {
@@ -765,8 +880,17 @@ class AudioClockSourceDescriptor extends Descriptor {
         new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
         new ConstantElement('bDescriptorSubtype', 'CLOCK_SOURCE subtype', 1, 0x0a),
         new VariableElement('bClockID', 'Clock Source entity ID', 1, 'dec'),
-        new VariableElement('bmAttributes', 'Clock type attributes', 1, 'hex'),
-        new VariableElement('bmControls', 'Clock controls', 1, 'hex'),
+        // D1:0 together encode the clock type (00 external, 01 internal fixed,
+        // 10 internal variable, 11 internal programmable); exposed here as raw bits.
+        new BitmapElement('bmAttributes', 'Clock type attributes', 1, {
+            'Internal Clock': 0x01,
+            'Programmable Clock': 0x02,
+            'Synchronized to SOF': 0x04,
+        }),
+        new BitmapElement('bmControls', 'Clock controls', 1, {
+            'Clock Frequency Control': 0x03,
+            'Clock Validity Control': 0x0c,
+        }),
         new VariableElement('bAssocTerminal', 'Associated terminal ID', 1, 'dec'),
         new StringLinkElement('iClockSource', 'Clock Source name string descriptor', 1),
     ];
@@ -787,7 +911,9 @@ class AudioClockSelectorDescriptor extends Descriptor {
         new VariableElement('bClockID', 'Clock Selector entity ID', 1, 'dec'),
         new VariableElement('bNrInPins', 'Number of input pins', 1, 'dec'),
         new VariableElement('baCSourceID1', 'Clock entity ID of input pin 1', 1, 'dec'),
-        new VariableElement('bmControls', 'Clock selector controls', 1, 'hex'),
+        new BitmapElement('bmControls', 'Clock selector controls', 1, {
+            'Clock Selector Control': 0x03,
+        }),
         new StringLinkElement('iClockSelector', 'Clock Selector name string descriptor', 1),
     ];
 
@@ -806,7 +932,10 @@ class AudioClockMultiplierDescriptor extends Descriptor {
         new ConstantElement('bDescriptorSubtype', 'CLOCK_MULTIPLIER subtype', 1, 0x0c),
         new VariableElement('bClockID', 'Clock Multiplier entity ID', 1, 'dec'),
         new VariableElement('bCSourceID', 'Input clock entity ID', 1, 'dec'),
-        new VariableElement('bmControls', 'Clock multiplier controls', 1, 'hex'),
+        new BitmapElement('bmControls', 'Clock multiplier controls', 1, {
+            'Clock Numerator Control': 0x03,
+            'Clock Denominator Control': 0x0c,
+        }),
         new StringLinkElement('iClockMultiplier', 'Clock Multiplier name string descriptor', 1),
     ];
 
@@ -824,13 +953,20 @@ class AudioInputTerminalDescriptor extends Descriptor {
         new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
         new ConstantElement('bDescriptorSubtype', 'INPUT_TERMINAL subtype', 1, 0x02),
         new VariableElement('bTerminalID', 'Input Terminal entity ID', 1, 'dec'),
-        new VariableElement('wTerminalType', 'Terminal type', 2, 'hex'),
+        new EnumElement('wTerminalType', 'Terminal type', 2, audioTerminalTypeEnumValues),
         new VariableElement('bAssocTerminal', 'Associated output terminal ID', 1, 'dec'),
         new VariableElement('bCSourceID', 'Clock entity ID', 1, 'dec'),
         new VariableElement('bNrChannels', 'Number of logical output channels', 1, 'dec'),
-        new VariableElement('bmChannelConfig', 'Spatial channel locations', 4, 'hex'),
+        new BitmapElement('bmChannelConfig', 'Spatial channel locations', 4, audioChannelConfigBitmapValues),
         new StringLinkElement('iChannelNames', 'First channel name string descriptor', 1),
-        new VariableElement('bmControls', 'Terminal controls', 2, 'hex'),
+        new BitmapElement('bmControls', 'Terminal controls', 2, {
+            'Copy Protect Control': 0x0003,
+            'Connector Control': 0x000c,
+            'Overload Control': 0x0030,
+            'Cluster Control': 0x00c0,
+            'Underflow Control': 0x0300,
+            'Overflow Control': 0x0c00,
+        }),
         new StringLinkElement('iTerminal', 'Terminal name string descriptor', 1),
     ];
 
@@ -848,11 +984,17 @@ class AudioOutputTerminalDescriptor extends Descriptor {
         new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
         new ConstantElement('bDescriptorSubtype', 'OUTPUT_TERMINAL subtype', 1, 0x03),
         new VariableElement('bTerminalID', 'Output Terminal entity ID', 1, 'dec'),
-        new VariableElement('wTerminalType', 'Terminal type', 2, 'hex'),
+        new EnumElement('wTerminalType', 'Terminal type', 2, audioTerminalTypeEnumValues),
         new VariableElement('bAssocTerminal', 'Associated input terminal ID', 1, 'dec'),
         new VariableElement('bSourceID', 'ID of the unit/terminal feeding this output', 1, 'dec'),
         new VariableElement('bCSourceID', 'Clock entity ID', 1, 'dec'),
-        new VariableElement('bmControls', 'Terminal controls', 2, 'hex'),
+        new BitmapElement('bmControls', 'Terminal controls', 2, {
+            'Copy Protect Control': 0x0003,
+            'Connector Control': 0x000c,
+            'Overload Control': 0x0030,
+            'Underflow Control': 0x00c0,
+            'Overflow Control': 0x0300,
+        }),
         new StringLinkElement('iTerminal', 'Terminal name string descriptor', 1),
     ];
 
@@ -873,8 +1015,8 @@ class AudioFeatureUnitDescriptor extends Descriptor {
         new ConstantElement('bDescriptorSubtype', 'FEATURE_UNIT subtype', 1, 0x06),
         new VariableElement('bUnitID', 'Feature Unit entity ID', 1, 'dec'),
         new VariableElement('bSourceID', 'ID of the unit/terminal feeding this unit', 1, 'dec'),
-        new VariableElement('bmaControls0', 'Master channel controls', 4, 'hex'),
-        new VariableElement('bmaControls1', 'Logical channel 1 controls', 4, 'hex'),
+        new BitmapElement('bmaControls0', 'Master channel controls', 4, audioFeatureUnitControlBitmapValues),
+        new BitmapElement('bmaControls1', 'Logical channel 1 controls', 4, audioFeatureUnitControlBitmapValues),
         new StringLinkElement('iFeature', 'Feature Unit name string descriptor', 1),
     ];
 
@@ -894,7 +1036,9 @@ class AudioSelectorUnitDescriptor extends Descriptor {
         new VariableElement('bUnitID', 'Selector Unit entity ID', 1, 'dec'),
         new VariableElement('bNrInPins', 'Number of input pins', 1, 'dec'),
         new VariableElement('baSourceID1', 'ID of the unit/terminal on input pin 1', 1, 'dec'),
-        new VariableElement('bmControls', 'Selector controls', 1, 'hex'),
+        new BitmapElement('bmControls', 'Selector controls', 1, {
+            'Selector Control': 0x03,
+        }),
         new StringLinkElement('iSelector', 'Selector Unit name string descriptor', 1),
     ];
 
@@ -932,11 +1076,14 @@ class AudioStreamingGeneralDescriptor extends Descriptor {
         new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
         new ConstantElement('bDescriptorSubtype', 'AS_GENERAL subtype', 1, 0x01),
         new VariableElement('bTerminalLink', 'Connected terminal ID', 1, 'dec'),
-        new VariableElement('bmControls', 'AS interface controls', 1, 'hex'),
-        new VariableElement('bFormatType', 'Format type', 1, 'hex'),
-        new VariableElement('bmFormats', 'Supported audio data formats', 4, 'hex'),
+        new BitmapElement('bmControls', 'AS interface controls', 1, {
+            'Active Alternate Setting Control': 0x03,
+            'Valid Alternate Settings Control': 0x0c,
+        }),
+        new EnumElement('bFormatType', 'Format type', 1, audioFormatTypeEnumValues),
+        new BitmapElement('bmFormats', 'Supported audio data formats', 4, audioFormatsBitmapValues),
         new VariableElement('bNrChannels', 'Number of physical channels', 1, 'dec'),
-        new VariableElement('bmChannelConfig', 'Spatial channel locations', 4, 'hex'),
+        new BitmapElement('bmChannelConfig', 'Spatial channel locations', 4, audioChannelConfigBitmapValues),
         new StringLinkElement('iChannelNames', 'First channel name string descriptor', 1),
     ];
 
@@ -971,8 +1118,14 @@ class AudioDataEndpointDescriptor extends Descriptor {
         }),
         new ConstantElement('bDescriptorType', 'CS_ENDPOINT descriptor type', 1, 0x25),
         new ConstantElement('bDescriptorSubtype', 'EP_GENERAL subtype', 1, 0x01),
-        new VariableElement('bmAttributes', 'Endpoint attributes', 1, 'hex'),
-        new VariableElement('bmControls', 'Endpoint controls', 1, 'hex'),
+        new BitmapElement('bmAttributes', 'Endpoint attributes', 1, {
+            'Max Packets Only': 0x80,
+        }),
+        new BitmapElement('bmControls', 'Endpoint controls', 1, {
+            'Pitch Control': 0x03,
+            'Data Overrun Control': 0x0c,
+            'Data Underrun Control': 0x30,
+        }),
         new EnumElement('bLockDelayUnits', 'Units of wLockDelay', 1, {
             'Undefined': 0x00,
             'Milliseconds': 0x01,
