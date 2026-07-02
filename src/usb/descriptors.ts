@@ -109,6 +109,24 @@ const interfaceClassEnumValues: EnumValues = {
     'Vendor-specific': 0xff,
 };
 
+// CDC Communications interface subclass codes (USB CDC 1.2 Table 4).
+const interfaceSubClassEnumValues: EnumValues = {
+    'None': 0x00,
+    'Direct Line Control Model (DLCM)': 0x01,
+    'Abstract Control Model (ACM)': 0x02,
+    'Telephone Control Model (TCM)': 0x03,
+    'Multi-Channel Control Model (MCCM)': 0x04,
+    'CAPI Control Model (CAPI)': 0x05,
+    'Ethernet Networking Control Model (ECM)': 0x06,
+    'ATM Networking Control Model (ANCM)': 0x07,
+    'Wireless Handset Control Model (WHCM)': 0x08,
+    'Device Management Model (DMM)': 0x09,
+    'Mobile Direct Line Model (MDLM)': 0x0a,
+    'OBEX': 0x0b,
+    'Ethernet Emulation Model (EEM)': 0x0c,
+    'Network Control Model (NCM)': 0x0d,
+};
+
 class DeviceDescriptor extends Descriptor {
     readonly name = 'Device Descriptor';
     readonly elements: Element[] = [
@@ -435,9 +453,9 @@ class InterfaceDescriptor extends Descriptor {
         new VariableElement('bInterfaceNumber', 'Number of interface', 1, 'dec'),
         new VariableElement('bAlternateSetting', 'Value to select alternate setting', 1, 'dec'),
         new VariableElement('bNumEndpoints', 'Number of endpoints in interface', 1, 'dec'),
-        new VariableElement('bInterfaceClass', 'Class code', 1, 'hex'),
-        new EnumElement('bDeviceClass', 'Class code', 1, interfaceClassEnumValues),
-        new VariableElement('bDeviceSubClass', 'Subclass code', 1, 'hex'),
+        new EnumElement('bInterfaceClass', 'Class code', 1, interfaceClassEnumValues),
+        new EnumElement('bInterfaceSubClass', 'Interface subclass code', 1, interfaceSubClassEnumValues),
+        new VariableElement('bInterfaceProtocol', 'Protocol code', 1, 'hex'),
         new StringLinkElement('iInterface', 'Index of interface string descriptor', 1),
     ];
 
@@ -445,6 +463,12 @@ class InterfaceDescriptor extends Descriptor {
         'Endpoint Descriptor',
         'DFU Functional Descriptor',
         'HID Descriptor',
+        'CDC Header Functional Descriptor',
+        'CDC Union Functional Descriptor',
+        'CDC Call Management Functional Descriptor',
+        'CDC Abstract Control Management Descriptor',
+        'CDC Ethernet Networking Functional Descriptor',
+        'CDC NCM Functional Descriptor',
     ];
 
     isValid(): boolean {
@@ -544,6 +568,124 @@ class HIDDescriptor extends Descriptor {
     }
 }
 
+class CDCHeaderFunctionalDescriptor extends Descriptor {
+    readonly name = 'CDC Header Functional Descriptor';
+    readonly elements: Element[] = [
+        new AutoElement('bFunctionLength', 'Size of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
+        new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
+        new ConstantElement('bDescriptorSubtype', 'Header functional descriptor subtype', 1, 0x00),
+        new VariableElement('bcdCDC', 'CDC specification release number', 2, 'hex'),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
+class CDCUnionFunctionalDescriptor extends Descriptor {
+    readonly name = 'CDC Union Functional Descriptor';
+    readonly elements: Element[] = [
+        new AutoElement('bFunctionLength', 'Size of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
+        new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
+        new ConstantElement('bDescriptorSubtype', 'Union functional descriptor subtype', 1, 0x06),
+        new VariableElement('bControlInterface', 'Interface number of the control interface', 1, 'dec'),
+        new VariableElement('bSubordinateInterface0', 'Interface number of the first subordinate interface', 1, 'dec'),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
+class CDCCallManagementFunctionalDescriptor extends Descriptor {
+    readonly name = 'CDC Call Management Functional Descriptor';
+    readonly elements: Element[] = [
+        new AutoElement('bFunctionLength', 'Size of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
+        new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
+        new ConstantElement('bDescriptorSubtype', 'Call management functional descriptor subtype', 1, 0x01),
+        new BitmapElement('bmCapabilities', 'Call management capabilities', 1, {
+            'Device handles call management itself': 0x01,
+            'Call management over Data class interface': 0x02,
+        }),
+        new VariableElement('bDataInterface', 'Interface number of the Data class interface', 1, 'dec'),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
+class CDCAbstractControlManagementDescriptor extends Descriptor {
+    readonly name = 'CDC Abstract Control Management Descriptor';
+    readonly elements: Element[] = [
+        new AutoElement('bFunctionLength', 'Size of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
+        new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
+        new ConstantElement('bDescriptorSubtype', 'Abstract control management descriptor subtype', 1, 0x02),
+        new BitmapElement('bmCapabilities', 'Abstract control management capabilities', 1, {
+            'Comm feature Set/Clear/Get requests': 0x01,
+            'Line coding, line state, serial state': 0x02,
+            'Send Break request': 0x04,
+            'Network connection notification': 0x08,
+        }),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
+class CDCEthernetNetworkingFunctionalDescriptor extends Descriptor {
+    readonly name = 'CDC Ethernet Networking Functional Descriptor';
+    readonly elements: Element[] = [
+        new AutoElement('bFunctionLength', 'Size of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
+        new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
+        new ConstantElement('bDescriptorSubtype', 'Ethernet networking functional descriptor subtype', 1, 0x0f),
+        new StringLinkElement('iMACAddress', 'String descriptor holding the 48-bit MAC address', 1),
+        new VariableElement('bmEthernetStatistics', 'Ethernet statistics capabilities', 4, 'hex'),
+        new VariableElement('wMaxSegmentSize', 'Maximum Ethernet frame size', 2, 'dec'),
+        new VariableElement('wNumberMCFilters', 'Number of multicast filters', 2, 'hex'),
+        new VariableElement('bNumberPowerFilters', 'Number of wake-up pattern filters', 1, 'dec'),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
+class CDCNCMFunctionalDescriptor extends Descriptor {
+    readonly name = 'CDC NCM Functional Descriptor';
+    readonly elements: Element[] = [
+        new AutoElement('bFunctionLength', 'Size of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
+        new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
+        new ConstantElement('bDescriptorSubtype', 'NCM functional descriptor subtype', 1, 0x1a),
+        new VariableElement('bcdNcmVersion', 'NCM specification release number', 2, 'hex'),
+        new BitmapElement('bmNetworkCapabilities', 'NCM network capabilities', 1, {
+            'SetEthernetPacketFilter': 0x01,
+            'Net Address': 0x02,
+            'Encapsulated commands': 0x04,
+            'Max Datagram Size': 0x08,
+            'CRC Mode': 0x10,
+            'NTB input size (8-byte)': 0x20,
+        }),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
 export {
     Descriptor,
     DeviceDescriptor,
@@ -556,6 +698,12 @@ export {
     EndpointDescriptor,
     DFUFunctionalDescriptor,
     HIDDescriptor,
+    CDCHeaderFunctionalDescriptor,
+    CDCUnionFunctionalDescriptor,
+    CDCCallManagementFunctionalDescriptor,
+    CDCAbstractControlManagementDescriptor,
+    CDCEthernetNetworkingFunctionalDescriptor,
+    CDCNCMFunctionalDescriptor,
 };
 
 function createDescriptorByType(type: string): Descriptor {
@@ -582,6 +730,18 @@ function createDescriptorByType(type: string): Descriptor {
             return new DFUFunctionalDescriptor();
         case 'HID Descriptor':
             return new HIDDescriptor();
+        case 'CDC Header Functional Descriptor':
+            return new CDCHeaderFunctionalDescriptor();
+        case 'CDC Union Functional Descriptor':
+            return new CDCUnionFunctionalDescriptor();
+        case 'CDC Call Management Functional Descriptor':
+            return new CDCCallManagementFunctionalDescriptor();
+        case 'CDC Abstract Control Management Descriptor':
+            return new CDCAbstractControlManagementDescriptor();
+        case 'CDC Ethernet Networking Functional Descriptor':
+            return new CDCEthernetNetworkingFunctionalDescriptor();
+        case 'CDC NCM Functional Descriptor':
+            return new CDCNCMFunctionalDescriptor();
         default:
             throw new Error(`Invalid descriptor type: ${type}`);
     }
