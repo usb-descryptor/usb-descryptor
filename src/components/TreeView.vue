@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import TreeViewDescriptor from './TreeViewDescriptor.vue';
-import { Descriptor, rootDescriptorTypes } from '../usb/descriptors';
-import { NFlex, NDropdown, NButton, useMessage } from 'naive-ui';
+import { rootDescriptorTypes } from '../usb/descriptors';
+import { NDropdown, NButton, useMessage } from 'naive-ui';
 import { Add16Filled } from '@vicons/fluent';
 import { Icon } from '@vicons/utils';
 
 import { useDescriptorStore } from '@/stores/descriptor'
 const store = useDescriptorStore();
 
-const emits = defineEmits([
+defineEmits([
     'selected',
 ]);
 

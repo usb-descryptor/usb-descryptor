@@ -59,5 +59,12 @@ npm run test:unit
 ### Lint with [ESLint](https://eslint.org/)
 
 ```sh
-npm run lint
+npm run lint        # lints and auto-fixes
+npm run lint:check  # lints without fixing (used by CI)
 ```
+
+### Continuous Integration
+
+Pushes and pull requests to `main` run type-checking, linting, tests, and a
+production build via GitHub Actions (`.github/workflows/ci.yml`). Merges to
+`main` are deployed to GitHub Pages automatically.

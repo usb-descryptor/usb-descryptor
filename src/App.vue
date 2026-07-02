@@ -9,10 +9,11 @@ import CodeOutput from './components/CodeOutput.vue';
 import { useDescriptorStore } from '@/stores/descriptor'
 const store = useDescriptorStore();
 
-let currentDescriptor = ref(null);
+const currentDescriptor = ref(null);
 
 const currentTheme = ref('dark');
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- payload is a Ref<Descriptor> wrapped again by TreeViewDescriptor's emit; Vue's UnwrapRef flattens nested refs in templates, so typing this precisely breaks vue-tsc
 function selected(descriptor: any) {
     currentDescriptor.value = descriptor;
 }
@@ -27,7 +28,7 @@ function download() {
     const filename = `descryptor.json`;
     const text = store.dumpJSON();
 
-    var element = document.createElement('a');
+    const element = document.createElement('a');
     element.setAttribute('href', 'data:application/json;charset=utf-8,' + encodeURIComponent(text));
     element.setAttribute('download', filename);
 

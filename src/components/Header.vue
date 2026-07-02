@@ -1,7 +1,8 @@
+<!-- eslint-disable vue/multi-word-component-names -- retain existing single-word component name, no rename in scope -->
 <script setup lang="ts">
-import { NFlex, NPageHeader, NGrid, NGi, NButton, NPopover } from 'naive-ui'
+import { NFlex, NPageHeader, NGrid, NGi, NButton } from 'naive-ui'
 import { Github } from '@vicons/fa'
-import { DarkTheme20Regular, ArrowUpload16Filled, ArrowDownload16Filled } from '@vicons/fluent'
+import { ArrowDownload16Filled } from '@vicons/fluent'
 import { Icon } from '@vicons/utils';
 </script>
 

@@ -64,6 +64,7 @@ abstract class Descriptor {
             child.updateStringLinkElements(descriptors);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- recursive JSON shape not worth modeling; used only by JSON.stringify
     toJSON(): any {
         return {
             name: this.name,

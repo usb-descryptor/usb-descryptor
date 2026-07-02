@@ -1,9 +1,10 @@
-import { Descriptor, StringDescriptor } from "./descriptors";
+import { StringDescriptor } from "./descriptors";
 
 abstract class Element {
     abstract name: string;
     abstract comment: string;
     abstract size: number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- value type varies per subclass (number or string); narrowing would require a broader refactor
     abstract value: any;
 
     length(): number {
@@ -35,6 +36,7 @@ abstract class Element {
         return true;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- JSON shape mirrors the dynamically-typed value field above
     toJSON(): any {
         return {
             name: this.name,
@@ -84,6 +86,7 @@ class VariableElement extends Element {
 
 type EnumValues = { [key: string]: number };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- return shape is a naive-ui select option list, not worth a bespoke type
 function selectValues(enumValues: EnumValues): any[] {
     return Object.keys(enumValues).map(key => ({
         label: enumValues[key],
@@ -105,6 +108,7 @@ class EnumElement extends Element {
         return Object.values(this.enumValues).includes(this.value);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- delegates to selectValues() helper above, same naive-ui option list shape
     selectValues(): any {
         return selectValues(this.enumValues);
     }
@@ -178,6 +182,7 @@ class LinkElement extends Element {
     value = 0;
     getValues: () => EnumValues;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- delegates to selectValues() helper above, same naive-ui option list shape
     selectValues(): any {
         return selectValues(this.getValues());
     }

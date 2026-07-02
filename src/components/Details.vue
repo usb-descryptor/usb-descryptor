@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/multi-word-component-names -- retain existing single-word component name, no rename in scope -->
 <script setup lang="ts">
 import type { Ref } from 'vue'
 import { NGrid, NGi, NInput, NInputNumber, NSelect, NCheckbox } from 'naive-ui'
@@ -16,7 +17,7 @@ import { Descriptor } from '../usb/descriptors';
 import { useDescriptorStore } from '@/stores/descriptor';
 const store = useDescriptorStore();
 
-const props = defineProps<{
+defineProps<{
     descriptor: Ref<Descriptor> | null,
 }>()
 
@@ -62,7 +63,7 @@ function updateBitmap(element: BitmapElement, key: number, on: boolean) {
                 <h2>{{ descriptor.value.name }} #{{ descriptor.value.index }}</h2>
             </n-gi>
 
-            <template v-for="element in descriptor.value.elements" :key="element.id">
+            <template v-for="(element, index) in descriptor.value.elements" :key="index">
                 <n-gi>
                     {{ element.name }}
                     <p class="comment" v-if="element.size == 1">

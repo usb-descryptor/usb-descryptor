@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { Descriptor } from '../usb/descriptors'
 import { NFlex, NDropdown, NButton, useMessage } from 'naive-ui';
-import { Add16Filled, Delete16Regular, CircleSmall20Filled, Warning16Filled } from '@vicons/fluent';
+import { Add16Filled, Delete16Regular, CircleSmall20Filled } from '@vicons/fluent';
 import { Icon } from '@vicons/utils';
 
 import { useDescriptorStore } from '@/stores/descriptor'
