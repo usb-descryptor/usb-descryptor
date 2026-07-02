@@ -16,7 +16,7 @@ In particular, the following features are needed:
 - More output formats
 - Unit and integration tests
 
-A compiled version is available at [https://usb-descryptor.github.io/](https://usb-descryptor.github.io/).
+A compiled version is available at [https://usb-descryptor.github.io/usb-descryptor/](https://usb-descryptor.github.io/usb-descryptor/).
 
 # Development
 

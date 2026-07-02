@@ -15,7 +15,10 @@ function commitHash(): string {
 }
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  // Deployed to the GitHub Pages project subpath https://usb-descryptor.github.io/usb-descryptor/.
+  // Only the production build needs the prefix; the dev server stays at '/'.
+  base: command === 'build' ? '/usb-descryptor/' : '/',
   plugins: [
     vue(),
   ],
@@ -27,4 +30,4 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   }
-})
+}))
