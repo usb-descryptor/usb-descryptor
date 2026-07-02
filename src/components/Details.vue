@@ -2,7 +2,6 @@
 <script setup lang="ts">
 import type { Ref } from 'vue'
 import { NGrid, NGi, NInput, NInputNumber, NSelect, NCheckbox } from 'naive-ui'
-import type { FormValidationStatus } from 'naive-ui/lib/form/src/interface';
 import {
     Element,
     AutoElement,
@@ -21,7 +20,9 @@ defineProps<{
     descriptor: Ref<Descriptor> | null,
 }>()
 
-function inputStatus(element: Element): FormValidationStatus | undefined {
+// 'error' is a naive-ui FormValidationStatus value; typed inline to avoid
+// depending on naive-ui's internal type paths, which move between versions.
+function inputStatus(element: Element): 'error' | undefined {
     return element.isValid() ? undefined : "error";
 }
 
