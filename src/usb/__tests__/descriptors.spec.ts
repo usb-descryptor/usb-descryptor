@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { createDescriptorByType, InterfaceDescriptor, rootDescriptorTypes } from '../descriptors'
+import {
+    createDescriptorByType,
+    InterfaceDescriptor,
+    EndpointDescriptor,
+    rootDescriptorTypes
+} from '../descriptors'
 import { EnumElement, type Element } from '../elements'
 
 function field(elements: Element[], name: string): Element | undefined {
@@ -78,6 +83,62 @@ describe('Interface Descriptor subclass', () => {
         const proto = field(new InterfaceDescriptor().elements, 'bInterfaceProtocol')
         expect(proto).toBeInstanceOf(EnumElement)
         expect(Object.values((proto as EnumElement).enumValues)).toContain(0x50)
+    })
+})
+
+// USB Audio Class 2.0 (docs/usb-class-descriptors-reference.md §1). AC/AS
+// interface descriptors use bDescriptorType 0x24 (CS_INTERFACE); the audio data
+// endpoint uses 0x25 (CS_ENDPOINT).
+const UAC2_DESCRIPTORS = [
+    { type: 'Audio Control Header', dtype: 0x24, subtype: 0x01, length: 9, under: 'interface' },
+    { type: 'Audio Clock Source', dtype: 0x24, subtype: 0x0a, length: 8, under: 'interface' },
+    { type: 'Audio Clock Selector', dtype: 0x24, subtype: 0x0b, length: 8, under: 'interface' },
+    { type: 'Audio Clock Multiplier', dtype: 0x24, subtype: 0x0c, length: 7, under: 'interface' },
+    { type: 'Audio Input Terminal', dtype: 0x24, subtype: 0x02, length: 17, under: 'interface' },
+    { type: 'Audio Output Terminal', dtype: 0x24, subtype: 0x03, length: 12, under: 'interface' },
+    { type: 'Audio Feature Unit', dtype: 0x24, subtype: 0x06, length: 14, under: 'interface' },
+    { type: 'Audio Selector Unit', dtype: 0x24, subtype: 0x05, length: 8, under: 'interface' },
+    { type: 'Audio Sampling Rate Converter', dtype: 0x24, subtype: 0x0d, length: 8, under: 'interface' },
+    { type: 'Audio Streaming General', dtype: 0x24, subtype: 0x01, length: 16, under: 'interface' },
+    { type: 'Audio Streaming Format Type I', dtype: 0x24, subtype: 0x02, length: 6, under: 'interface' },
+    { type: 'Audio Data Endpoint', dtype: 0x25, subtype: 0x01, length: 8, under: 'endpoint' }
+]
+
+describe('USB Audio Class 2.0 descriptors', () => {
+    for (const { type, dtype, subtype, length } of UAC2_DESCRIPTORS) {
+        describe(type, () => {
+            it('is constructible via the factory', () => {
+                expect(createDescriptorByType(type).name).toBe(type)
+            })
+
+            it(`uses bDescriptorType 0x${dtype.toString(16)}`, () => {
+                expect(field(createDescriptorByType(type).elements, 'bDescriptorType')?.value).toBe(dtype)
+            })
+
+            it(`uses bDescriptorSubtype 0x${subtype.toString(16)}`, () => {
+                expect(field(createDescriptorByType(type).elements, 'bDescriptorSubtype')?.value).toBe(subtype)
+            })
+
+            it(`is ${length} bytes long`, () => {
+                expect(createDescriptorByType(type).length()).toBe(length)
+            })
+        })
+    }
+
+    it('AC/AS interface descriptors are addable under an Interface Descriptor', () => {
+        const iface = new InterfaceDescriptor()
+        for (const { type, under } of UAC2_DESCRIPTORS) {
+            if (under === 'interface') expect(iface.canHaveChildType(type)).toBe(true)
+        }
+    })
+
+    it('the audio data endpoint is addable under an Endpoint Descriptor', () => {
+        expect(new EndpointDescriptor().canHaveChildType('Audio Data Endpoint')).toBe(true)
+    })
+
+    it('the interface subclass enum includes the audio subclasses', () => {
+        const sub = field(new InterfaceDescriptor().elements, 'bInterfaceSubClass') as EnumElement
+        expect(Object.keys(sub.enumValues).some((k) => k.startsWith('Audio:'))).toBe(true)
     })
 })
 

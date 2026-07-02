@@ -135,6 +135,10 @@ const interfaceSubClassEnumValues: EnumValues = {
     'MSC: SCSI transparent': 0x06,
     'MSC: LSD FS': 0x07,
     'MSC: IEEE 1667': 0x08,
+    // Audio (class 0x01)
+    'Audio: AudioControl': 0x01,
+    'Audio: AudioStreaming': 0x02,
+    'Audio: MIDIStreaming': 0x03,
 };
 
 // Interface protocol codes (class-dependent; labeled by class context).
@@ -492,6 +496,17 @@ class InterfaceDescriptor extends Descriptor {
         'CDC Abstract Control Management Descriptor',
         'CDC Ethernet Networking Functional Descriptor',
         'CDC NCM Functional Descriptor',
+        'Audio Control Header',
+        'Audio Clock Source',
+        'Audio Clock Selector',
+        'Audio Clock Multiplier',
+        'Audio Input Terminal',
+        'Audio Output Terminal',
+        'Audio Feature Unit',
+        'Audio Selector Unit',
+        'Audio Sampling Rate Converter',
+        'Audio Streaming General',
+        'Audio Streaming Format Type I',
     ];
 
     isValid(): boolean {
@@ -544,6 +559,10 @@ class EndpointDescriptor extends Descriptor {
         }),
         new VariableElement('wMaxPacketSize', 'Maximum packet size', 2, 'dec'),
         new VariableElement('bInterval', 'Polling interval', 1, 'dec'),
+    ];
+
+    readonly possibleChildTypes: string[] = [
+        'Audio Data Endpoint',
     ];
 
     isValid(): boolean {
@@ -709,6 +728,259 @@ class CDCNCMFunctionalDescriptor extends Descriptor {
     }
 }
 
+// USB Audio Class 2.0 class-specific descriptors. AC/AS interface descriptors
+// use bDescriptorType 0x24 (CS_INTERFACE); the audio data endpoint uses 0x25.
+// bmControls/bmAttributes are 2-bit-per-control fields whose bit meanings vary
+// per descriptor, so they are modelled as plain hex values.
+class AudioControlHeaderDescriptor extends Descriptor {
+    readonly name = 'Audio Control Header';
+    readonly elements: Element[] = [
+        new AutoElement('bLength', 'Size of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
+        new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
+        new ConstantElement('bDescriptorSubtype', 'HEADER subtype', 1, 0x01),
+        new VariableElement('bcdADC', 'Audio Device Class specification release number', 2, 'hex'),
+        new VariableElement('bCategory', 'Audio function category', 1, 'hex'),
+        new VariableElement('wTotalLength', 'Total length of the class-specific AC descriptors', 2, 'hex'),
+        new VariableElement('bmControls', 'Audio function controls', 1, 'hex'),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
+class AudioClockSourceDescriptor extends Descriptor {
+    readonly name = 'Audio Clock Source';
+    readonly elements: Element[] = [
+        new AutoElement('bLength', 'Size of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
+        new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
+        new ConstantElement('bDescriptorSubtype', 'CLOCK_SOURCE subtype', 1, 0x0a),
+        new VariableElement('bClockID', 'Clock Source entity ID', 1, 'dec'),
+        new VariableElement('bmAttributes', 'Clock type attributes', 1, 'hex'),
+        new VariableElement('bmControls', 'Clock controls', 1, 'hex'),
+        new VariableElement('bAssocTerminal', 'Associated terminal ID', 1, 'dec'),
+        new StringLinkElement('iClockSource', 'Clock Source name string descriptor', 1),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
+class AudioClockSelectorDescriptor extends Descriptor {
+    readonly name = 'Audio Clock Selector';
+    readonly elements: Element[] = [
+        new AutoElement('bLength', 'Size of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
+        new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
+        new ConstantElement('bDescriptorSubtype', 'CLOCK_SELECTOR subtype', 1, 0x0b),
+        new VariableElement('bClockID', 'Clock Selector entity ID', 1, 'dec'),
+        new VariableElement('bNrInPins', 'Number of input pins', 1, 'dec'),
+        new VariableElement('baCSourceID1', 'Clock entity ID of input pin 1', 1, 'dec'),
+        new VariableElement('bmControls', 'Clock selector controls', 1, 'hex'),
+        new StringLinkElement('iClockSelector', 'Clock Selector name string descriptor', 1),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
+class AudioClockMultiplierDescriptor extends Descriptor {
+    readonly name = 'Audio Clock Multiplier';
+    readonly elements: Element[] = [
+        new AutoElement('bLength', 'Size of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
+        new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
+        new ConstantElement('bDescriptorSubtype', 'CLOCK_MULTIPLIER subtype', 1, 0x0c),
+        new VariableElement('bClockID', 'Clock Multiplier entity ID', 1, 'dec'),
+        new VariableElement('bCSourceID', 'Input clock entity ID', 1, 'dec'),
+        new VariableElement('bmControls', 'Clock multiplier controls', 1, 'hex'),
+        new StringLinkElement('iClockMultiplier', 'Clock Multiplier name string descriptor', 1),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
+class AudioInputTerminalDescriptor extends Descriptor {
+    readonly name = 'Audio Input Terminal';
+    readonly elements: Element[] = [
+        new AutoElement('bLength', 'Size of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
+        new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
+        new ConstantElement('bDescriptorSubtype', 'INPUT_TERMINAL subtype', 1, 0x02),
+        new VariableElement('bTerminalID', 'Input Terminal entity ID', 1, 'dec'),
+        new VariableElement('wTerminalType', 'Terminal type', 2, 'hex'),
+        new VariableElement('bAssocTerminal', 'Associated output terminal ID', 1, 'dec'),
+        new VariableElement('bCSourceID', 'Clock entity ID', 1, 'dec'),
+        new VariableElement('bNrChannels', 'Number of logical output channels', 1, 'dec'),
+        new VariableElement('bmChannelConfig', 'Spatial channel locations', 4, 'hex'),
+        new StringLinkElement('iChannelNames', 'First channel name string descriptor', 1),
+        new VariableElement('bmControls', 'Terminal controls', 2, 'hex'),
+        new StringLinkElement('iTerminal', 'Terminal name string descriptor', 1),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
+class AudioOutputTerminalDescriptor extends Descriptor {
+    readonly name = 'Audio Output Terminal';
+    readonly elements: Element[] = [
+        new AutoElement('bLength', 'Size of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
+        new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
+        new ConstantElement('bDescriptorSubtype', 'OUTPUT_TERMINAL subtype', 1, 0x03),
+        new VariableElement('bTerminalID', 'Output Terminal entity ID', 1, 'dec'),
+        new VariableElement('wTerminalType', 'Terminal type', 2, 'hex'),
+        new VariableElement('bAssocTerminal', 'Associated input terminal ID', 1, 'dec'),
+        new VariableElement('bSourceID', 'ID of the unit/terminal feeding this output', 1, 'dec'),
+        new VariableElement('bCSourceID', 'Clock entity ID', 1, 'dec'),
+        new VariableElement('bmControls', 'Terminal controls', 2, 'hex'),
+        new StringLinkElement('iTerminal', 'Terminal name string descriptor', 1),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
+class AudioFeatureUnitDescriptor extends Descriptor {
+    // Modelled for a master channel plus one logical channel (14 bytes). The
+    // spec length is 6 + (bNrChannels + 1) * 4.
+    readonly name = 'Audio Feature Unit';
+    readonly elements: Element[] = [
+        new AutoElement('bLength', 'Size of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
+        new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
+        new ConstantElement('bDescriptorSubtype', 'FEATURE_UNIT subtype', 1, 0x06),
+        new VariableElement('bUnitID', 'Feature Unit entity ID', 1, 'dec'),
+        new VariableElement('bSourceID', 'ID of the unit/terminal feeding this unit', 1, 'dec'),
+        new VariableElement('bmaControls0', 'Master channel controls', 4, 'hex'),
+        new VariableElement('bmaControls1', 'Logical channel 1 controls', 4, 'hex'),
+        new StringLinkElement('iFeature', 'Feature Unit name string descriptor', 1),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
+class AudioSelectorUnitDescriptor extends Descriptor {
+    readonly name = 'Audio Selector Unit';
+    readonly elements: Element[] = [
+        new AutoElement('bLength', 'Size of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
+        new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
+        new ConstantElement('bDescriptorSubtype', 'SELECTOR_UNIT subtype', 1, 0x05),
+        new VariableElement('bUnitID', 'Selector Unit entity ID', 1, 'dec'),
+        new VariableElement('bNrInPins', 'Number of input pins', 1, 'dec'),
+        new VariableElement('baSourceID1', 'ID of the unit/terminal on input pin 1', 1, 'dec'),
+        new VariableElement('bmControls', 'Selector controls', 1, 'hex'),
+        new StringLinkElement('iSelector', 'Selector Unit name string descriptor', 1),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
+class AudioSamplingRateConverterDescriptor extends Descriptor {
+    readonly name = 'Audio Sampling Rate Converter';
+    readonly elements: Element[] = [
+        new AutoElement('bLength', 'Size of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
+        new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
+        new ConstantElement('bDescriptorSubtype', 'SAMPLE_RATE_CONVERTER subtype', 1, 0x0d),
+        new VariableElement('bUnitID', 'Sampling Rate Converter entity ID', 1, 'dec'),
+        new VariableElement('bSourceID', 'ID of the unit/terminal feeding this unit', 1, 'dec'),
+        new VariableElement('bCSourceInID', 'Input clock entity ID', 1, 'dec'),
+        new VariableElement('bCSourceOutID', 'Output clock entity ID', 1, 'dec'),
+        new StringLinkElement('iSRC', 'Sampling Rate Converter name string descriptor', 1),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
+class AudioStreamingGeneralDescriptor extends Descriptor {
+    readonly name = 'Audio Streaming General';
+    readonly elements: Element[] = [
+        new AutoElement('bLength', 'Size of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
+        new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
+        new ConstantElement('bDescriptorSubtype', 'AS_GENERAL subtype', 1, 0x01),
+        new VariableElement('bTerminalLink', 'Connected terminal ID', 1, 'dec'),
+        new VariableElement('bmControls', 'AS interface controls', 1, 'hex'),
+        new VariableElement('bFormatType', 'Format type', 1, 'hex'),
+        new VariableElement('bmFormats', 'Supported audio data formats', 4, 'hex'),
+        new VariableElement('bNrChannels', 'Number of physical channels', 1, 'dec'),
+        new VariableElement('bmChannelConfig', 'Spatial channel locations', 4, 'hex'),
+        new StringLinkElement('iChannelNames', 'First channel name string descriptor', 1),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
+class AudioStreamingFormatTypeIDescriptor extends Descriptor {
+    readonly name = 'Audio Streaming Format Type I';
+    readonly elements: Element[] = [
+        new AutoElement('bLength', 'Size of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
+        new ConstantElement('bDescriptorType', 'CS_INTERFACE descriptor type', 1, 0x24),
+        new ConstantElement('bDescriptorSubtype', 'FORMAT_TYPE subtype', 1, 0x02),
+        new ConstantElement('bFormatType', 'FORMAT_TYPE_I', 1, 0x01),
+        new VariableElement('bSubslotSize', 'Bytes per audio subslot', 1, 'dec'),
+        new VariableElement('bBitResolution', 'Valid bits per sample', 1, 'dec'),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
+class AudioDataEndpointDescriptor extends Descriptor {
+    readonly name = 'Audio Data Endpoint';
+    readonly elements: Element[] = [
+        new AutoElement('bLength', 'Size of descriptor in bytes', 1, () => {
+            return this.length();
+        }),
+        new ConstantElement('bDescriptorType', 'CS_ENDPOINT descriptor type', 1, 0x25),
+        new ConstantElement('bDescriptorSubtype', 'EP_GENERAL subtype', 1, 0x01),
+        new VariableElement('bmAttributes', 'Endpoint attributes', 1, 'hex'),
+        new VariableElement('bmControls', 'Endpoint controls', 1, 'hex'),
+        new EnumElement('bLockDelayUnits', 'Units of wLockDelay', 1, {
+            'Undefined': 0x00,
+            'Milliseconds': 0x01,
+            'Decoded PCM samples': 0x02,
+        }),
+        new VariableElement('wLockDelay', 'Time to lock the endpoint', 2, 'dec'),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
 // Mass Storage Bulk-Only Transport wrappers. These are transport structs, not
 // USB descriptors, so they carry no bLength and are used as root structures.
 class CommandBlockWrapper extends Descriptor {
@@ -768,6 +1040,18 @@ export {
     CDCNCMFunctionalDescriptor,
     CommandBlockWrapper,
     CommandStatusWrapper,
+    AudioControlHeaderDescriptor,
+    AudioClockSourceDescriptor,
+    AudioClockSelectorDescriptor,
+    AudioClockMultiplierDescriptor,
+    AudioInputTerminalDescriptor,
+    AudioOutputTerminalDescriptor,
+    AudioFeatureUnitDescriptor,
+    AudioSelectorUnitDescriptor,
+    AudioSamplingRateConverterDescriptor,
+    AudioStreamingGeneralDescriptor,
+    AudioStreamingFormatTypeIDescriptor,
+    AudioDataEndpointDescriptor,
 };
 
 function createDescriptorByType(type: string): Descriptor {
@@ -810,6 +1094,30 @@ function createDescriptorByType(type: string): Descriptor {
             return new CommandBlockWrapper();
         case 'Command Status Wrapper (CSW)':
             return new CommandStatusWrapper();
+        case 'Audio Control Header':
+            return new AudioControlHeaderDescriptor();
+        case 'Audio Clock Source':
+            return new AudioClockSourceDescriptor();
+        case 'Audio Clock Selector':
+            return new AudioClockSelectorDescriptor();
+        case 'Audio Clock Multiplier':
+            return new AudioClockMultiplierDescriptor();
+        case 'Audio Input Terminal':
+            return new AudioInputTerminalDescriptor();
+        case 'Audio Output Terminal':
+            return new AudioOutputTerminalDescriptor();
+        case 'Audio Feature Unit':
+            return new AudioFeatureUnitDescriptor();
+        case 'Audio Selector Unit':
+            return new AudioSelectorUnitDescriptor();
+        case 'Audio Sampling Rate Converter':
+            return new AudioSamplingRateConverterDescriptor();
+        case 'Audio Streaming General':
+            return new AudioStreamingGeneralDescriptor();
+        case 'Audio Streaming Format Type I':
+            return new AudioStreamingFormatTypeIDescriptor();
+        case 'Audio Data Endpoint':
+            return new AudioDataEndpointDescriptor();
         default:
             throw new Error(`Invalid descriptor type: ${type}`);
     }
