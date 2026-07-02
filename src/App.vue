@@ -9,6 +9,8 @@ import CodeOutput from './components/CodeOutput.vue';
 import { useDescriptorStore } from '@/stores/descriptor'
 const store = useDescriptorStore();
 
+const commitHash = __COMMIT_HASH__;
+
 const currentDescriptor = ref(null);
 
 const currentTheme = ref('dark');
@@ -60,6 +62,14 @@ function toggleTheme() {
                 </n-split>
                 <CodeOutput />
             </div>
+            <footer class="footer">
+                build
+                <a
+                    :href="`https://github.com/usb-descryptor/usb-descryptor/commit/${commitHash}`"
+                    target="_blank"
+                    rel="noopener"
+                >{{ commitHash }}</a>
+            </footer>
         </n-message-provider>
     </n-config-provider>
 </template>
@@ -75,5 +85,13 @@ function toggleTheme() {
 
 #details {
     margin-left: 1rem;
+}
+
+.footer {
+    margin-top: 2rem;
+    padding: 1rem;
+    text-align: center;
+    font-size: 0.8rem;
+    opacity: 0.6;
 }
 </style>
