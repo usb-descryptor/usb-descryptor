@@ -20,8 +20,9 @@ function selected(descriptor: Descriptor) {
     currentDescriptor.value = descriptor;
 }
 
-function upload() {
-    console.log('upload');
+function imported() {
+    // The freshly loaded tree replaces the old one, so drop the stale selection.
+    currentDescriptor.value = null;
 }
 
 function download() {
@@ -50,7 +51,7 @@ function toggleTheme() {
 <template>
     <n-config-provider :theme="currentTheme === 'light' ? lightTheme : darkTheme">
         <n-message-provider>
-            <Header @toggleTheme="toggleTheme" @upload="upload" @download="download" />
+            <Header @toggleTheme="toggleTheme" @imported="imported" @download="download" />
             <div id="main">
                 <n-split direction="horizontal" style="min-height: 200px" :max="0.75" :min="0.25">
                     <template #1>

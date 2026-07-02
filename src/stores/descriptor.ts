@@ -69,6 +69,39 @@ export const useDescriptorStore = defineStore('descriptor', () => {
     return JSON.stringify(v, null, 2);
   }
 
+  // Rebuild a descriptor (and its subtree) from the { name, elements, children }
+  // shape produced by Descriptor.toJSON(). Element values are copied by name onto
+  // a fresh descriptor of that type; auto/index values are recomputed afterwards.
+  interface SerializedElement { name: string; value: unknown }
+  interface SerializedDescriptor { name: string; elements?: SerializedElement[]; children?: SerializedDescriptor[] }
+
+  function reconstructDescriptor(data: SerializedDescriptor): Descriptor {
+    const descriptor = createDescriptorByType(data.name);
+
+    for (const saved of data.elements ?? []) {
+        const target = descriptor.elements.find(element => element.name === saved.name);
+        if (target) {
+            target.value = saved.value;
+        }
+    }
+
+    for (const child of data.children ?? []) {
+        descriptor.children.push(reconstructDescriptor(child));
+    }
+
+    return descriptor;
+  }
+
+  function loadJSON(json: string): void {
+    const parsed = JSON.parse(json);
+    const restored = (parsed.descriptors ?? []).map(reconstructDescriptor);
+
+    descriptors.value = restored;
+
+    updateElements();
+    assignIndices();
+  }
+
   function assignIndices() {
     const indidcesForType = new Map<string, number>();
 
@@ -89,5 +122,5 @@ export const useDescriptorStore = defineStore('descriptor', () => {
   updateElements();
   assignIndices();
 
-  return { descriptors, addDescriptor, removeDescriptor, dumpJSON, updateElements }
+  return { descriptors, addDescriptor, removeDescriptor, dumpJSON, loadJSON, updateElements }
 })
