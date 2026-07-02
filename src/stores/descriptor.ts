@@ -16,12 +16,15 @@ export const useDescriptorStore = defineStore('descriptor', () => {
   descriptors.value.push(new StringZeroDescriptor);
   descriptors.value.push(new ConfigurationDescriptor);
   
-  function addDescriptor(type: string) {
-    const descriptor = createDescriptorByType(type);
-    descriptors.value.push(descriptor);
+  function addDescriptor(type: string): Descriptor {
+    descriptors.value.push(createDescriptorByType(type));
 
     updateElements();
     assignIndices();
+
+    // Return the reactive instance from the store (not the raw object just
+    // created) so callers can select it for editing.
+    return descriptors.value[descriptors.value.length - 1];
   }
 
   function removeDescriptorFromList(descriptors: Descriptor[], victim: Descriptor) {
@@ -80,7 +83,6 @@ export const useDescriptorStore = defineStore('descriptor', () => {
 
         descriptor.index = indidcesForType.get(type)!;
         indidcesForType.set(type, indidcesForType.get(type)! + 1);
-        console.log(type);
     }
   }
 

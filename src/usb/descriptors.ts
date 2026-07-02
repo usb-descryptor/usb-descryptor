@@ -18,13 +18,18 @@ abstract class Descriptor {
     index: number = 0;
     children: Descriptor[] = [];
 
-    addChild(type: string): void {
-        if (this.canHaveChildType(type)) {
-            this.children.push(createDescriptorByType(type));
-            this.updateAutoElements();
-        } else {
+    addChild(type: string): Descriptor {
+        if (!this.canHaveChildType(type)) {
             throw new Error(`Invalid child descriptor type: ${type}`);
         }
+
+        this.children.push(createDescriptorByType(type));
+        this.updateAutoElements();
+
+        // Return the instance read back from the array so that, when the tree is
+        // held in a reactive store, callers get the reactive proxy (not the raw
+        // object) and can select it for editing.
+        return this.children[this.children.length - 1];
     }
 
     canHaveChildType(type: string): boolean {

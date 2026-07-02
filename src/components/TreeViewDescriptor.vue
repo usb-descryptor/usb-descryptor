@@ -12,6 +12,8 @@ const props = defineProps<{
     descriptor: Descriptor
 }>()
 
+const emit = defineEmits(['selected']);
+
 function possibleChildren() {
     return props.descriptor.possibleChildTypes.map(type => ({
         label: type,
@@ -22,8 +24,9 @@ function possibleChildren() {
 const message = useMessage();
 
 function addChild(type: string) {
-    props.descriptor.addChild(type);
+    const child = props.descriptor.addChild(type);
     message.info(`Added ${type} to ${props.descriptor.name}`);
+    emit('selected', ref(child));
 }
 
 </script>

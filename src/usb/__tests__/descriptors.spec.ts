@@ -54,6 +54,15 @@ describe('CDC functional descriptors', () => {
     })
 })
 
+describe('Descriptor.addChild', () => {
+    it('returns the newly created child so callers can select it', () => {
+        const iface = new InterfaceDescriptor()
+        const child = iface.addChild('Endpoint Descriptor')
+        expect(child.name).toBe('Endpoint Descriptor')
+        expect(iface.children[iface.children.length - 1]).toBe(child)
+    })
+})
+
 describe('Interface Descriptor', () => {
     it('starts with an auto-computed bLength and is 9 bytes', () => {
         const iface = new InterfaceDescriptor()

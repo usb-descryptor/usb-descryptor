@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import TreeViewDescriptor from './TreeViewDescriptor.vue';
 import { rootDescriptorTypes } from '../usb/descriptors';
 import { NDropdown, NButton, useMessage } from 'naive-ui';
@@ -8,7 +9,7 @@ import { Icon } from '@vicons/utils';
 import { useDescriptorStore } from '@/stores/descriptor'
 const store = useDescriptorStore();
 
-defineEmits([
+const emit = defineEmits([
     'selected',
 ]);
 
@@ -22,8 +23,9 @@ function possibleRootDescriptors() {
 const message = useMessage();
 
 function addDescriptor(type: string) {
-    store.addDescriptor(type);
+    const descriptor = store.addDescriptor(type);
     message.info(`Added ${type}`);
+    emit('selected', ref(descriptor));
 }
 </script>
 
