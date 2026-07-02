@@ -203,11 +203,19 @@ class StringElement extends Element {
     value = '';
 
     length(): number {
-        return this.value.length;
+        // USB string descriptors encode bString as UTF-16LE: two bytes per
+        // UTF-16 code unit (USB 2.0 spec §9.6.7).
+        return this.value.length * 2;
     }
 
     toByteArray(): Uint8Array {
-        return new TextEncoder().encode(this.value);
+        const bytes = new Uint8Array(this.value.length * 2);
+        for (let i = 0; i < this.value.length; i++) {
+            const code = this.value.charCodeAt(i);
+            bytes[i * 2] = code & 0xff;
+            bytes[i * 2 + 1] = (code >> 8) & 0xff;
+        }
+        return bytes;
     }
 
     constructor(name: string, comment: string) {
