@@ -40,7 +40,7 @@ import { Icon } from '@vicons/utils';
                         </Icon>
                     </n-button> -->
 
-                    <n-button tag="a" href="https://github.com/usb-descryptor/" target="_new">
+                    <n-button tag="a" href="https://github.com/usb-descryptor/usb-descryptor" target="_new">
                         <Icon size="24">
                             <Github />
                         </Icon>
