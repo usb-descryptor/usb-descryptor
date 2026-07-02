@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import TreeViewDescriptor from './TreeViewDescriptor.vue';
-import { rootDescriptorTypes } from '../usb/descriptors';
+import { rootDescriptorTypes, Descriptor } from '../usb/descriptors';
 import { NDropdown, NButton, useMessage } from 'naive-ui';
 import { Add16Filled } from '@vicons/fluent';
 import { Icon } from '@vicons/utils';
 
 import { useDescriptorStore } from '@/stores/descriptor'
 const store = useDescriptorStore();
+
+defineProps<{
+    selected: Descriptor | null,
+}>()
 
 const emit = defineEmits([
     'selected',
@@ -25,7 +28,7 @@ const message = useMessage();
 function addDescriptor(type: string) {
     const descriptor = store.addDescriptor(type);
     message.info(`Added ${type}`);
-    emit('selected', ref(descriptor));
+    emit('selected', descriptor);
 }
 </script>
 
@@ -34,7 +37,8 @@ function addDescriptor(type: string) {
 
     <div class="tree">
         <div v-for="descriptor in store.descriptors" :key="descriptor.name">
-            <TreeViewDescriptor :descriptor="descriptor" @selected="$emit('selected', $event)" />
+            <TreeViewDescriptor :descriptor="descriptor" :selected="selected"
+                @selected="$emit('selected', $event)" />
         </div>
     </div>
 

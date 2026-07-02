@@ -1,6 +1,5 @@
 <!-- eslint-disable vue/multi-word-component-names -- retain existing single-word component name, no rename in scope -->
 <script setup lang="ts">
-import type { Ref } from 'vue'
 import { NGrid, NGi, NInput, NInputNumber, NSelect, NCheckbox } from 'naive-ui'
 import {
     Element,
@@ -17,7 +16,7 @@ import { useDescriptorStore } from '@/stores/descriptor';
 const store = useDescriptorStore();
 
 defineProps<{
-    descriptor: Ref<Descriptor> | null,
+    descriptor: Descriptor | null,
 }>()
 
 // 'error' is a naive-ui FormValidationStatus value; typed inline to avoid
@@ -61,10 +60,10 @@ function updateBitmap(element: BitmapElement, key: number, on: boolean) {
     <div v-if="descriptor !== null">
         <n-grid x-gap="1" y-gap="10" :cols="3" layout-shift-disabled>
             <n-gi span="3">
-                <h2>{{ descriptor.value.name }} #{{ descriptor.value.index }}</h2>
+                <h2>{{ descriptor.name }} #{{ descriptor.index }}</h2>
             </n-gi>
 
-            <template v-for="(element, index) in descriptor.value.elements" :key="index">
+            <template v-for="(element, index) in descriptor.elements" :key="index">
                 <n-gi>
                     {{ element.name }}
                     <p class="comment" v-if="element.size == 1">

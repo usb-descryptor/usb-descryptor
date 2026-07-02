@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { Descriptor } from '../usb/descriptors'
 import { NFlex, NDropdown, NButton, useMessage } from 'naive-ui';
 import { Add16Filled, Delete16Regular, CircleSmall20Filled } from '@vicons/fluent';
@@ -9,7 +8,8 @@ import { useDescriptorStore } from '@/stores/descriptor'
 const store = useDescriptorStore();
 
 const props = defineProps<{
-    descriptor: Descriptor
+    descriptor: Descriptor,
+    selected: Descriptor | null,
 }>()
 
 const emit = defineEmits(['selected']);
@@ -26,19 +26,19 @@ const message = useMessage();
 function addChild(type: string) {
     const child = props.descriptor.addChild(type);
     message.info(`Added ${type} to ${props.descriptor.name}`);
-    emit('selected', ref(child));
+    emit('selected', child);
 }
 
 </script>
 
 <template>
-    <n-flex>
+    <n-flex class="node" :class="{ active: descriptor === selected }" align="center">
         <div>
             <Icon size="16">
                 <CircleSmall20Filled />
             </Icon>
 
-            <a @click="$emit('selected', ref(descriptor))">
+            <a class="node-name" @click="$emit('selected', descriptor)">
                 {{ descriptor.name }} #{{ descriptor.index }} ({{ descriptor.length() }} bytes)
             </a>
         </div>
@@ -64,11 +64,51 @@ function addChild(type: string) {
         </div>
     </n-flex>
 
-    <div style="margin-left: 2rem;">
-        <div v-for="d in descriptor.children " :key="d.name">
-            <TreeViewDescriptor :descriptor="d" @selected="$emit('selected', $event)" />
+    <div class="children" v-if="descriptor.children.length > 0">
+        <div class="child" v-for="d in descriptor.children" :key="d.name">
+            <TreeViewDescriptor :descriptor="d" :selected="selected" @selected="$emit('selected', $event)" />
         </div>
     </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.node {
+    border-radius: 4px;
+    padding: 1px 6px;
+    border-left: 3px solid transparent;
+}
+
+.node.active {
+    background: rgba(99, 226, 183, 0.14);
+    border-left-color: #63e2b7;
+}
+
+.node-name {
+    cursor: pointer;
+}
+
+.node.active .node-name {
+    font-weight: 600;
+}
+
+/* Nested children get a vertical guide line with a connector per child. */
+.children {
+    margin-left: 0.6rem;
+    padding-left: 1rem;
+    border-left: 1px solid rgba(128, 128, 128, 0.35);
+}
+
+.child {
+    position: relative;
+}
+
+.child::before {
+    content: '';
+    position: absolute;
+    left: -1rem;
+    top: 0.85rem;
+    width: 0.75rem;
+    height: 1px;
+    background: rgba(128, 128, 128, 0.35);
+}
+</style>

@@ -6,17 +6,17 @@ import TreeView from './components/TreeView.vue';
 import Details from './components/Details.vue';
 import CodeOutput from './components/CodeOutput.vue';
 
+import { Descriptor } from './usb/descriptors';
 import { useDescriptorStore } from '@/stores/descriptor'
 const store = useDescriptorStore();
 
 const commitHash = __COMMIT_HASH__;
 
-const currentDescriptor = ref(null);
+const currentDescriptor = ref<Descriptor | null>(null);
 
 const currentTheme = ref('dark');
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- payload is a Ref<Descriptor> wrapped again by TreeViewDescriptor's emit; Vue's UnwrapRef flattens nested refs in templates, so typing this precisely breaks vue-tsc
-function selected(descriptor: any) {
+function selected(descriptor: Descriptor) {
     currentDescriptor.value = descriptor;
 }
 
@@ -54,7 +54,7 @@ function toggleTheme() {
             <div id="main">
                 <n-split direction="horizontal" style="min-height: 200px" :max="0.75" :min="0.25">
                     <template #1>
-                        <TreeView @selected="selected" />
+                        <TreeView :selected="currentDescriptor" @selected="selected" />
                     </template>
                     <template #2>
                         <Details :descriptor="currentDescriptor" id="details" />
