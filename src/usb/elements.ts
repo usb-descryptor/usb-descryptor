@@ -12,24 +12,15 @@ abstract class Element {
     }
 
     toByteArray(): Uint8Array {
-        switch (this.size) {
-            case 1:
-                return new Uint8Array([this.value & 0xff]);
-            case 2:
-                return new Uint8Array([
-                    this.value & 0xff,
-                    (this.value >> 8) & 0xff,
-                ]);
-            case 4:
-                return new Uint8Array([
-                    this.value & 0xff,
-                    (this.value >> 8) & 0xff,
-                    (this.value >> 16) & 0xff,
-                    (this.value >> 24) & 0xff,
-                ]);
-            default:
-                throw new Error(`Invalid element size: ${this.size}`);
+        // Emit `size` little-endian bytes. Uses division rather than bit shifts
+        // so fields wider than 32 bits (e.g. the 16-byte CBWCB) work correctly.
+        const bytes = new Uint8Array(this.size);
+        let value = this.value;
+        for (let i = 0; i < this.size; i++) {
+            bytes[i] = value & 0xff;
+            value = Math.floor(value / 256);
         }
+        return bytes;
     }
 
     isValid(): boolean {
@@ -72,7 +63,8 @@ class VariableElement extends Element {
     format = 'dec';
 
     isValid(): boolean {
-        return this.value >= 0 && this.value < (1 << this.size*8);
+        // 2 ** (size*8) instead of (1 << size*8), which overflows for size >= 4.
+        return this.value >= 0 && this.value < 2 ** (this.size * 8);
     }
 
     constructor(name: string, comment: string, size: number, format: string) {

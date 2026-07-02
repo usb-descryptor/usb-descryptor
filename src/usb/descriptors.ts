@@ -109,22 +109,42 @@ const interfaceClassEnumValues: EnumValues = {
     'Vendor-specific': 0xff,
 };
 
-// CDC Communications interface subclass codes (USB CDC 1.2 Table 4).
+// Interface subclass codes. Subclass meaning is class-dependent, so entries are
+// labeled by their class context; several byte values are shared between classes
+// (e.g. 0x06 is CDC ECM and MSC SCSI-transparent). CDC 1.2 Table 4; USB MSC codes.
 const interfaceSubClassEnumValues: EnumValues = {
     'None': 0x00,
-    'Direct Line Control Model (DLCM)': 0x01,
-    'Abstract Control Model (ACM)': 0x02,
-    'Telephone Control Model (TCM)': 0x03,
-    'Multi-Channel Control Model (MCCM)': 0x04,
-    'CAPI Control Model (CAPI)': 0x05,
-    'Ethernet Networking Control Model (ECM)': 0x06,
-    'ATM Networking Control Model (ANCM)': 0x07,
-    'Wireless Handset Control Model (WHCM)': 0x08,
-    'Device Management Model (DMM)': 0x09,
-    'Mobile Direct Line Model (MDLM)': 0x0a,
-    'OBEX': 0x0b,
-    'Ethernet Emulation Model (EEM)': 0x0c,
-    'Network Control Model (NCM)': 0x0d,
+    // CDC Communications (class 0x02)
+    'CDC: Direct Line Control (DLCM)': 0x01,
+    'CDC: Abstract Control (ACM)': 0x02,
+    'CDC: Telephone Control (TCM)': 0x03,
+    'CDC: Multi-Channel Control (MCCM)': 0x04,
+    'CDC: CAPI Control (CAPI)': 0x05,
+    'CDC: Ethernet Networking (ECM)': 0x06,
+    'CDC: ATM Networking (ANCM)': 0x07,
+    'CDC: Wireless Handset Control (WHCM)': 0x08,
+    'CDC: Device Management (DMM)': 0x09,
+    'CDC: Mobile Direct Line (MDLM)': 0x0a,
+    'CDC: OBEX': 0x0b,
+    'CDC: Ethernet Emulation (EEM)': 0x0c,
+    'CDC: Network Control (NCM)': 0x0d,
+    // Mass Storage (class 0x08)
+    'MSC: RBC': 0x01,
+    'MSC: MMC-5 (ATAPI)': 0x02,
+    'MSC: UFI': 0x04,
+    'MSC: SCSI transparent': 0x06,
+    'MSC: LSD FS': 0x07,
+    'MSC: IEEE 1667': 0x08,
+};
+
+// Interface protocol codes (class-dependent; labeled by class context).
+const interfaceProtocolEnumValues: EnumValues = {
+    'None / unspecified': 0x00,
+    'MSC: CBI (with command completion interrupt)': 0x00,
+    'MSC: CBI (no command completion interrupt)': 0x01,
+    'MSC: Bulk-Only Transport (BOT)': 0x50,
+    'MSC: USB Attached SCSI (UAS)': 0x62,
+    'Vendor-specific': 0xff,
 };
 
 class DeviceDescriptor extends Descriptor {
@@ -458,7 +478,7 @@ class InterfaceDescriptor extends Descriptor {
         new VariableElement('bNumEndpoints', 'Number of endpoints in interface', 1, 'dec'),
         new EnumElement('bInterfaceClass', 'Class code', 1, interfaceClassEnumValues),
         new EnumElement('bInterfaceSubClass', 'Interface subclass code', 1, interfaceSubClassEnumValues),
-        new VariableElement('bInterfaceProtocol', 'Protocol code', 1, 'hex'),
+        new EnumElement('bInterfaceProtocol', 'Interface protocol code', 1, interfaceProtocolEnumValues),
         new StringLinkElement('iInterface', 'Index of interface string descriptor', 1),
     ];
 
@@ -689,6 +709,45 @@ class CDCNCMFunctionalDescriptor extends Descriptor {
     }
 }
 
+// Mass Storage Bulk-Only Transport wrappers. These are transport structs, not
+// USB descriptors, so they carry no bLength and are used as root structures.
+class CommandBlockWrapper extends Descriptor {
+    readonly name = 'Command Block Wrapper (CBW)';
+    readonly elements: Element[] = [
+        new ConstantElement('dCBWSignature', 'CBW signature ("USBC")', 4, 0x43425355),
+        new VariableElement('dCBWTag', 'Command block tag (echoed in the CSW)', 4, 'hex'),
+        new VariableElement('dCBWDataTransferLength', 'Bytes transferred in the data stage', 4, 'dec'),
+        new BitmapElement('bmCBWFlags', 'Flags', 1, {
+            'Data-In (device to host)': 0x80,
+        }),
+        new VariableElement('bCBWLUN', 'Target logical unit number', 1, 'dec'),
+        new VariableElement('bCBWCBLength', 'Length of the command block (1-16)', 1, 'dec'),
+        new ConstantElement('CBWCB', 'Command block (SCSI CDB); filled at runtime', 16, 0),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
+class CommandStatusWrapper extends Descriptor {
+    readonly name = 'Command Status Wrapper (CSW)';
+    readonly elements: Element[] = [
+        new ConstantElement('dCSWSignature', 'CSW signature ("USBS")', 4, 0x53425355),
+        new VariableElement('dCSWTag', 'Tag echoing the CBW tag', 4, 'hex'),
+        new VariableElement('dCSWDataResidue', 'Difference between expected and actual transfer', 4, 'dec'),
+        new EnumElement('bCSWStatus', 'Command status', 1, {
+            'Command Passed': 0x00,
+            'Command Failed': 0x01,
+            'Phase Error': 0x02,
+        }),
+    ];
+
+    isValid(): boolean {
+        return super.isValid();
+    }
+}
+
 export {
     Descriptor,
     DeviceDescriptor,
@@ -707,6 +766,8 @@ export {
     CDCAbstractControlManagementDescriptor,
     CDCEthernetNetworkingFunctionalDescriptor,
     CDCNCMFunctionalDescriptor,
+    CommandBlockWrapper,
+    CommandStatusWrapper,
 };
 
 function createDescriptorByType(type: string): Descriptor {
@@ -745,6 +806,10 @@ function createDescriptorByType(type: string): Descriptor {
             return new CDCEthernetNetworkingFunctionalDescriptor();
         case 'CDC NCM Functional Descriptor':
             return new CDCNCMFunctionalDescriptor();
+        case 'Command Block Wrapper (CBW)':
+            return new CommandBlockWrapper();
+        case 'Command Status Wrapper (CSW)':
+            return new CommandStatusWrapper();
         default:
             throw new Error(`Invalid descriptor type: ${type}`);
     }
@@ -756,6 +821,8 @@ const rootDescriptorTypes = [
     'Other Speed Configuration Descriptor',
     'String Descriptor',
     'String Zero Descriptor',
+    'Command Block Wrapper (CBW)',
+    'Command Status Wrapper (CSW)',
 ];
 
 export {

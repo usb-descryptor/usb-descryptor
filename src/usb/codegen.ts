@@ -95,7 +95,7 @@ const cSpec: LangSpec = {
     indent: '  ',
     descriptorComment: (name) => `  /* ${name} */`,
     fieldComment: (text) => `/* ${text} */`,
-    identifier: (name, index) => `${name.replace(/ /g, '')}_${index}`,
+    identifier: (name, index) => `${name.replace(/[^A-Za-z0-9]/g, '')}_${index}`,
     commentColumn: 32
 }
 
@@ -106,7 +106,8 @@ const rustSpec: LangSpec = {
     indent: '    ',
     descriptorComment: (name) => `    // ${name}`,
     fieldComment: (text) => `// ${text}`,
-    identifier: (name, index) => `${name.trim().split(/\s+/).join('_').toUpperCase()}_${index}`,
+    identifier: (name, index) =>
+        `${name.split(/[^A-Za-z0-9]+/).filter(Boolean).join('_').toUpperCase()}_${index}`,
     commentColumn: 35
 }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createDescriptorByType, InterfaceDescriptor } from '../descriptors'
+import { createDescriptorByType, InterfaceDescriptor, rootDescriptorTypes } from '../descriptors'
 import { EnumElement, type Element } from '../elements'
 
 function field(elements: Element[], name: string): Element | undefined {
@@ -65,5 +65,40 @@ describe('Interface Descriptor subclass', () => {
         expect(sub).toBeInstanceOf(EnumElement)
         const values = Object.values((sub as EnumElement).enumValues)
         expect(values).toEqual(expect.arrayContaining([0x02, 0x06, 0x0d])) // ACM, ECM, NCM
+    })
+
+    it('includes both CDC and MSC command-set codes, labeled by class', () => {
+        const sub = field(new InterfaceDescriptor().elements, 'bInterfaceSubClass') as EnumElement
+        const keys = Object.keys(sub.enumValues)
+        expect(keys.some((k) => k.startsWith('CDC:'))).toBe(true)
+        expect(keys.some((k) => k.startsWith('MSC:'))).toBe(true)
+    })
+
+    it('exposes bInterfaceProtocol as an enum including Bulk-Only Transport (0x50)', () => {
+        const proto = field(new InterfaceDescriptor().elements, 'bInterfaceProtocol')
+        expect(proto).toBeInstanceOf(EnumElement)
+        expect(Object.values((proto as EnumElement).enumValues)).toContain(0x50)
+    })
+})
+
+describe('Mass Storage transport structs', () => {
+    it('CBW is 31 bytes with the "USBC" signature', () => {
+        const cbw = createDescriptorByType('Command Block Wrapper (CBW)')
+        expect(cbw.length()).toBe(31)
+        const sig = field(cbw.elements, 'dCBWSignature')!
+        expect(Array.from(sig.toByteArray())).toEqual([0x55, 0x53, 0x42, 0x43])
+    })
+
+    it('CSW is 13 bytes with the "USBS" signature', () => {
+        const csw = createDescriptorByType('Command Status Wrapper (CSW)')
+        expect(csw.length()).toBe(13)
+        const sig = field(csw.elements, 'dCSWSignature')!
+        expect(Array.from(sig.toByteArray())).toEqual([0x55, 0x53, 0x42, 0x53])
+    })
+
+    it('are available as root-level structures', () => {
+        expect(rootDescriptorTypes).toEqual(
+            expect.arrayContaining(['Command Block Wrapper (CBW)', 'Command Status Wrapper (CSW)'])
+        )
     })
 })

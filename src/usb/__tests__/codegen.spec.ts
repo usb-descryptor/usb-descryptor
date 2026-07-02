@@ -47,6 +47,23 @@ describe('generateC', () => {
     })
 })
 
+describe('identifier sanitization', () => {
+    // Descriptor display names can contain punctuation (e.g. "Command Block
+    // Wrapper (CBW)"); the emitted array name must still be a valid identifier.
+    const parenNamed = () =>
+        desc('Command Block Wrapper (CBW)', 0, [el('dCBWSignature', 'sig', 0, [0x55])])
+
+    it('produces a valid C identifier from a name with punctuation', () => {
+        const m = generateC([parenNamed()]).match(/unsigned char (\S+)\[\]/)
+        expect(m?.[1]).toMatch(/^[A-Za-z_][A-Za-z0-9_]*$/)
+    })
+
+    it('produces a valid Rust identifier from a name with punctuation', () => {
+        const m = generateRust([parenNamed()]).match(/static (\S+):/)
+        expect(m?.[1]).toMatch(/^[A-Za-z_][A-Za-z0-9_]*$/)
+    })
+})
+
 describe('generateRust', () => {
     it('emits an idiomatic sized static array with SCREAMING_SNAKE_CASE name', () => {
         const out = generateRust([fourByteDescriptor()])
